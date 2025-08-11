@@ -1,0 +1,248 @@
+// Flow timings: wait 3s after video end to show welcome, then 3s to registration
+const introVideo = document.getElementById("intro-video");
+const introScreen = document.getElementById("intro-screen");
+const appMain = document.getElementById("app");
+const welcome = document.getElementById("welcome");
+const registration = document.getElementById("registration");
+const quiz = document.getElementById("quiz");
+const thank = document.getElementById("thank");
+
+const registerBtn = document.getElementById("register-btn");
+const startBtn = document.getElementById("start-btn");
+const regStatus = document.getElementById("reg-status");
+
+let QUESTIONS = [];
+let currentIndex = 0;
+let timerInt = null;
+const PER_TIME = 20;
+let timeLeft = PER_TIME;
+let answersGiven = [];
+let questionStartTime = null;
+let userName = "", userRegno = "";
+
+// get questions from server
+async function fetchQuestions(){
+  const res = await fetch("/questions");
+  QUESTIONS = await res.json();
+}
+
+// video end -> show welcome after 3s
+introVideo.addEventListener("ended", async () => {
+  // hide intro visuals
+  introScreen.style.display = "none";
+  // allow app visibility
+  appMain.removeAttribute("aria-hidden");
+
+  // show welcome
+  welcome.classList.remove("hidden");
+  // after 3s show registration
+  setTimeout(() => {
+    welcome.classList.add("hidden");
+    registration.classList.remove("hidden");
+    document.getElementById("name").focus();
+  }, 3000);
+
+  // preload questions
+  fetchQuestions();
+});
+
+// register handler
+registerBtn.addEventListener("click", async () => {
+  const name = document.getElementById("name").value.trim();
+  const regno = document.getElementById("regno").value.trim();
+  const college = document.getElementById("college").value.trim();
+  const department = document.getElementById("department").value.trim();
+  const year = document.getElementById("year").value.trim();
+
+  if(!name || !regno){
+    regStatus.textContent = "Name and Reg No are required.";
+    return;
+  }
+
+  registerBtn.disabled = true;
+  regStatus.textContent = "Registering...";
+
+  try {
+    const res = await fetch("/register", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({name, regno, college, department, year})
+    });
+    const j = await res.json();
+    if(j.success){
+      regStatus.textContent = "Registered successfully.";
+      startBtn.classList.remove("hidden");
+      startBtn.classList.add("slide-in");
+      userName = name; userRegno = regno;
+    } else {
+      regStatus.textContent = j.message || "Registration failed.";
+    }
+  } catch (e) {
+    regStatus.textContent = "Network error.";
+  } finally {
+    registerBtn.disabled = false;
+  }
+});
+
+// start quiz handler
+startBtn.addEventListener("click", () => {
+  registration.classList.add("hidden");
+  quiz.classList.remove("hidden");
+  currentIndex = 0; answersGiven = [];
+  showQuestion();
+  startTimer();
+});
+
+// show question
+function showQuestion(){
+  if(currentIndex >= QUESTIONS.length){
+    finishQuiz();
+    return;
+  }
+  const q = QUESTIONS[currentIndex];
+  document.getElementById("question-text").innerText = `Q${currentIndex+1}. ${q.question}`;
+  const opts = document.getElementById("options");
+  opts.innerHTML = "";
+  q.options.forEach((o, idx) => {
+    const d = document.createElement("div");
+    d.className = "option";
+    d.innerText = o;
+    d.onclick = () => {
+      document.querySelectorAll(".option").forEach(x=>x.classList.remove("selected"));
+      d.classList.add("selected");
+      // store answer for this question in memory (overwrite if reselect)
+      answersGiven[currentIndex] = {qId: q.id ?? currentIndex, selected: idx, time_sec: getQuestionTime()};
+    };
+    opts.appendChild(d);
+  });
+
+  // UI animation
+  const qbox = document.getElementById("question-box");
+  qbox.classList.remove("slide-in");
+  void qbox.offsetWidth;
+  qbox.classList.add("slide-in");
+
+  // reset timer
+  timeLeft = PER_TIME;
+  document.getElementById("time").innerText = timeLeft;
+  questionStartTime = Date.now();
+}
+
+function getQuestionTime(){
+  if(!questionStartTime) return PER_TIME;
+  const elapsed = Math.round((Date.now() - questionStartTime)/1000);
+  return Math.min(elapsed, PER_TIME);
+}
+
+// timer
+function startTimer(){
+  clearInterval(timerInt);
+  timeLeft = PER_TIME;
+  document.getElementById("time").innerText = timeLeft;
+  timerInt = setInterval(() => {
+    timeLeft--;
+    document.getElementById("time").innerText = timeLeft;
+    if(timeLeft <= 0){
+      clearInterval(timerInt);
+      nextQuestion();
+    }
+  }, 1000);
+}
+
+// next question
+document.getElementById("next-btn").addEventListener("click", nextQuestion);
+function nextQuestion(){
+  clearInterval(timerInt);
+  // if no selection for this question, store null and time
+  if(!answersGiven[currentIndex]) answersGiven[currentIndex] = {qId: QUESTIONS[currentIndex].id ?? currentIndex, selected: null, time_sec: getQuestionTime()};
+  currentIndex++;
+  if(currentIndex < QUESTIONS.length){
+    showQuestion();
+    startTimer();
+  } else {
+    finishQuiz();
+  }
+}
+
+// finish quiz: compute score locally using questions.json answers (server has answers too)
+async function finishQuiz(){
+  clearInterval(timerInt);
+  // Build payload with timings
+  const payload = { name: userName, regno: userRegno, answers: answersGiven };
+  try {
+    const res = await fetch("/submit-quiz", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if(j.success){
+      quiz.classList.add("hidden");
+      thank.classList.remove("hidden");
+      document.getElementById("final-msg").innerHTML = `Your quiz has been submitted.`;
+      // Show leaderboard after short delay
+      setTimeout(showLeaderboard, 1200);
+    } else {
+      alert("Error submitting quiz: " + (j.message || "unknown"));
+    }
+  } catch (err) {
+    alert("Network error sending results.");
+  }
+}
+
+async function showLeaderboard(){
+  thank.classList.add("hidden");
+  const lbSection = document.getElementById("leaderboard");
+  lbSection.classList.remove("hidden");
+  const tableDiv = document.getElementById("leaderboard-table");
+  tableDiv.innerHTML = "Loading...";
+  let yourRank = "";
+  try {
+    const res = await fetch("/leaderboard");
+    const data = await res.json();
+    if(Array.isArray(data)){
+      let html = `<table class='lb-table'><thead><tr><th>Rank</th><th>Name</th><th>Reg No</th><th>Correct</th><th>Points</th><th>Avg Time (s)</th></tr></thead><tbody>`;
+      let found = false;
+      data.forEach((row, idx) => {
+        html += `<tr${row.regno===userRegno ? " style='background:#e0e7ff'" : ""}><td>${idx+1}</td><td>${row.name}</td><td>${row.regno}</td><td>${row.correct_answers}</td><td>${row.points}</td><td>${row.avg_time_sec}</td></tr>`;
+        if(row.regno===userRegno){
+          yourRank = `Your Rank: ${idx+1} | Points: ${row.points} | Avg Time: ${row.avg_time_sec}s`;
+          found = true;
+        }
+      });
+      html += `</tbody></table>`;
+      tableDiv.innerHTML = html;
+      document.getElementById("your-rank").textContent = yourRank || "You are not in the top 20.";
+    } else {
+      tableDiv.innerHTML = "No leaderboard data.";
+    }
+  } catch(e){
+    tableDiv.innerHTML = "Error loading leaderboard.";
+  }
+}
+
+document.getElementById("close-leaderboard").addEventListener("click", () => {
+  document.getElementById("leaderboard").classList.add("hidden");
+  // Optionally show welcome or registration again
+  welcome.classList.remove("hidden");
+});
+function sendResultToServer(playerName, score, totalQuestions, timeTakenSec, answers) {
+  fetch('/submit_result', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: playerName,
+      score: score,
+      total: totalQuestions,
+      time_taken: timeTakenSec,
+      answers: answers // array of {question, selected, correct}
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log('Result saved:', data);
+    window.location.href = '/leaderboard.html';
+  })
+  .catch(err => console.error('Error saving result:', err));
+}
+

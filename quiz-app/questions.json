@@ -1,0 +1,6 @@
+[
+  {"question":"What is the time complexity of binary search?","options":["O(n)","O(log n)","O(n log n)","O(1)"],"answer":1},
+  {"question":"Which data structure uses FIFO?","options":["Stack","Queue","Tree","Graph"],"answer":1}
+]
+ 
+

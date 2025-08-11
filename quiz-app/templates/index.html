@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Algorithm Quiz</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <!-- Intro -->
+  <div id="intro-screen">
+    <video id="intro-video" autoplay muted playsinline>
+      <source src="{{ url_for('static', filename='assets/intro-video.mp4') }}" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <div class="intro-overlay">
+      <div class="intro-text glow"></div>
+    </div>
+  </div>
+
+  <!-- Main app (hidden until intro finished) -->
+  <main id="app" aria-hidden="true">
+    <!-- Welcome -->
+    <section id="welcome" class="panel hidden">
+      <div class="card welcome-card">
+        <h1 class="title glow-large">Welcome to Algorithm Quiz</h1>
+        <p class="subtitle">Sharpen your algorithm skills — register to continue</p>
+      </div>
+    </section>
+
+    <!-- Registration -->
+    <section id="registration" class="panel hidden">
+      <div class="card reg-card">
+        <h2 class="title-small">Register for Quiz</h2>
+        <div class="form-row">
+          <input id="name" placeholder="Full name" />
+          <input id="regno" placeholder="Registration no." />
+        </div>
+        <div class="form-row">
+          <input id="college" placeholder="College" />
+          <input id="department" placeholder="Department" />
+          <input id="year" placeholder="Year" />
+        </div>
+        <div class="actions">
+          <button id="register-btn" class="btn">Register</button>
+          <button id="start-btn" class="btn hidden">Start Quiz</button>
+        </div>
+        <p id="reg-status" class="status"></p>
+      </div>
+    </section>
+
+    <!-- Quiz -->
+    <section id="quiz" class="panel hidden">
+      <div class="card quiz-card">
+        <div id="question-box" class="question-box slide-in">
+          <h2 id="question-text"></h2>
+          <div id="options" class="options"></div>
+        </div>
+        <div class="quiz-footer">
+          <div id="timer" class="timer">Time: <span id="time">20</span>s</div>
+          <div><button id="next-btn" class="btn small">Next</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Thank you -->
+    <section id="thank" class="panel hidden">
+      <div class="card">
+        <h2>Finished</h2>
+        <p id="final-msg"></p>
+      </div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section id="leaderboard" class="panel hidden">
+      <div class="card">
+        <h2 class="title">Leaderboard</h2>
+        <div id="leaderboard-table"></div>
+        <p id="your-rank" class="status"></p>
+        <button id="close-leaderboard" class="btn small">Close</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

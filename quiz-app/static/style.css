@@ -1,0 +1,63 @@
+:root{
+  --bg1:#0b0120; --accent1:#7b2cff; --accent2:#3ac3ff; --card:#ffffffee;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:'Poppins',sans-serif;background:linear-gradient(180deg,#0b0120,#2b0e4a)}
+/* background image layer */
+body::after{
+  content:"";
+  position:fixed; inset:0;
+  background: url("assets/bg.jpg") center/cover no-repeat;
+  opacity:0.18; z-index:0; pointer-events:none; filter:contrast(1.02) saturate(1.05);
+}
+
+/* intro */
+#intro-screen{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#000}
+#intro-screen video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.intro-overlay{position:relative;z-index:60;display:flex;align-items:center;justify-content:center}
+.intro-text{font-size:4rem;color:var(--accent2);letter-spacing:1px}
+.glow{color:var(--accent2); text-shadow:0 0 12px rgba(58,195,255,0.28), 0 0 32px rgba(123,44,255,0.14)}
+
+/* app/main */
+#app{position:relative; z-index:10; min-height:100vh; display:flex; align-items:center; justify-content:center}
+
+/* panel & card */
+.panel{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center}
+.hidden{display:none}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9)); border-radius:16px; padding:28px; box-shadow:0 30px 60px rgba(3,2,20,0.6); width:min(920px,95%);}
+
+/* welcome */
+.welcome-card{padding:40px}
+.title{font-size:28px;color:var(--accent1); margin:0}
+.glow-large{font-size:40px;color:var(--accent1); text-shadow:0 10px 40px rgba(123,44,255,0.12)}
+.subtitle{color:#222;margin-top:10px}
+
+/* registration */
+.reg-card .form-row{display:flex;gap:12px;margin:12px 0;flex-wrap:wrap}
+.reg-card input{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.06); font-size:15px}
+.actions{display:flex;gap:12px;justify-content:center;margin-top:12px}
+.btn{padding:10px 18px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:white;font-weight:700;box-shadow:0 12px 30px rgba(59,195,255,0.06)}
+.btn.small{padding:8px 14px;font-size:14px}
+.hidden{display:none}
+.status{margin-top:8px;color:#333}
+
+/* quiz */
+.quiz-card{display:flex;flex-direction:column;gap:16px}
+.question-box{background:linear-gradient(180deg,#fff,#f7fbff);padding:18px;border-radius:12px;box-shadow:0 18px 40px rgba(3,2,20,0.08)}
+#question-text{color:var(--accent1);font-size:20px;margin:0}
+.options{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.option{padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#f6faff);cursor:pointer;border-left:6px solid transparent;transition:all .18s}
+.option:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(3,2,20,0.12)}
+.option.selected{border-left-color:var(--accent1);background:linear-gradient(180deg,#f2eaff,#eefaff)}
+
+.quiz-footer{display:flex;justify-content:space-between;align-items:center}
+.timer{font-weight:600;color:#222}
+
+/* animations */
+.slide-in{animation:slideIn .45s ease both}
+@keyframes slideIn{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes pop {
+  0% {transform: scale(.9); opacity: 0;}
+  60% {transform: scale(1.04);}
+  100% {transform: scale(1); opacity: 1;}
+}
