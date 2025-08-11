@@ -1,47 +1,20 @@
 import os
-import sqlite3
+import psycopg2
+import os
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import pandas as pd
 import json
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
 
-# === Database setup ===
-DB_PATH = os.path.join(os.path.dirname(__file__), "quiz.db")
+load_dotenv()
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    db_url = os.getenv('DB_URL')
+    conn = psycopg2.connect(db_url)
     return conn
-
-def init_db():
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS participants (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            regno TEXT NOT NULL,
-            correct INTEGER,
-            points INTEGER,
-            avg_time REAL
-        )
-    ''')
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS answers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            participant_id INTEGER,
-            question_id INTEGER,
-            answer INTEGER,
-            time_taken REAL,
-            FOREIGN KEY(participant_id) REFERENCES participants(id)
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
 
 # === Flask app ===
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -95,7 +68,7 @@ def register():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO participants (name, regno, correct, points, avg_time) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO participants (name, regno, correct, points, avg_time) VALUES (%s, %s, %s, %s, %s)",
             (name, regno, 0, 0, 0.0)
         )
         conn.commit()
@@ -151,13 +124,13 @@ def submit_quiz():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO participants (name, regno, correct, points, avg_time) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO participants (name, regno, correct, points, avg_time) VALUES (%s, %s, %s, %s, %s)",
         (name, regno, correct, points, avg_time)
     )
-    participant_id = cur.lastrowid
+    participant_id = cur.lastrowid+1
     for ans in answers:
         cur.execute(
-            "INSERT INTO answers (participant_id, question_id, answer, time_taken) VALUES (?, ?, ?, ?)",
+            "INSERT INTO answers (participant_id, question_id, answer, time_taken) VALUES (%s, %s, %s, %s)",
             (participant_id, ans.get("qId"), ans.get("selected"), ans.get("time_sec"))
         )
     conn.commit()
@@ -179,15 +152,15 @@ def leaderboard():
     rows = cur.fetchall()
     leaderboard_data = [
         {
-            "rank": idx + 1,
             "name": row[0],
             "regno": row[1],
             "correct": row[2],
             "points": row[3],
             "avg_time": round(row[4], 2) if row[4] is not None else ""
         }
-        for idx, row in enumerate(rows)
+        for row in rows
     ]
+    print(leaderboard_data)
     conn.close()
     return render_template("leaderboard.html", leaderboard=leaderboard_data)
 

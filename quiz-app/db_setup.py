@@ -1,12 +1,20 @@
-import sqlite3
+import psycopg2
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def get_db_connection():
+    db_url = os.getenv('DB_URL')
+    conn = psycopg2.connect(db_url)
+    return conn
 
 def init_db():
-    conn = sqlite3.connect('quiz.db')
+    conn = get_db_connection()
     c = conn.cursor()
-    # Participants table
     c.execute('''
         CREATE TABLE IF NOT EXISTS participants (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             regno TEXT NOT NULL,
             correct INTEGER,
@@ -14,20 +22,20 @@ def init_db():
             avg_time REAL
         )
     ''')
-    # Answers table
     c.execute('''
         CREATE TABLE IF NOT EXISTS answers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            participant_id INTEGER,
+            id SERIAL PRIMARY KEY,
+            participant_id INTEGER REFERENCES participants(id),
             question_id INTEGER,
             answer INTEGER,
-            time_taken REAL,
-            FOREIGN KEY(participant_id) REFERENCES participants(id)
+            time_taken REAL
         )
     ''')
+    
+    
     conn.commit()
     conn.close()
 
 if __name__ == "__main__":
     init_db()
-    print("Database initialized.")
+    print("PostgreSQL database initialized.")
