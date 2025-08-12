@@ -8,6 +8,16 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <!-- User badge -->
+  <div id="user-badge" class="user-badge hidden" aria-live="polite">
+    <div class="ub-avatar" id="ub-avatar">U</div>
+    <div class="ub-meta">
+      <div class="user-line"><small>Name =</small> <span id="ub-name">—</span></div>
+      <div class="user-line small"><small>Reg ID =</small> <span id="ub-regno">—</span></div>
+    </div>
+    <button id="ub-clear" class="ub-clear" title="Clear user">✕</button>
+  </div>
+
   <!-- Intro -->
   <div id="intro-screen">
     <video id="intro-video" autoplay muted playsinline>
