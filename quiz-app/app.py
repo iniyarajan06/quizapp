@@ -1,9 +1,7 @@
 import os
 import psycopg2
-import os
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-import pandas as pd
 import json
 from datetime import datetime
 from pathlib import Path
@@ -16,35 +14,19 @@ def get_db_connection():
     conn = psycopg2.connect(db_url)
     return conn
 
-# === Flask app ===
+
 app = Flask(__name__, static_folder="static", template_folder="templates")
-CORS(app)  # allow cross-origin requests
+CORS(app)  
 
-# === File paths ===
-DATA_DIR = Path(app.static_folder) / "data"
-DATA_DIR.mkdir(exist_ok=True)
-
-REG_FILE = DATA_DIR / "registrations.xlsx"
-RESULTS_FILE = DATA_DIR / "quiz_results.xlsx"
-LEADERBOARD_FILE = DATA_DIR / "leaderboard.xlsx"
+ 
 QUESTIONS_FILE = Path(__file__).parent / "questions.json"
-
-# === Initialize Excel files if missing ===
-if not REG_FILE.exists():
-    pd.DataFrame(columns=["timestamp", "name", "regno", "college", "department", "year"]).to_excel(REG_FILE, index=False)
-
-if not RESULTS_FILE.exists():
-    pd.DataFrame(columns=["timestamp", "name", "regno", "score", "total", "answers"]).to_excel(RESULTS_FILE, index=False)
-
-if not LEADERBOARD_FILE.exists():
-    pd.DataFrame(columns=["name", "regno", "correct_answers", "points", "avg_time_sec", "timestamp"]).to_excel(LEADERBOARD_FILE, index=False)
 
 # === Routes ===
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/register", methods=["POST"])
+@app.route("/register", methods=["POST"]) 
 def register():
     try:
         data = request.get_json()
@@ -57,14 +39,7 @@ def register():
         if not (name and regno and college and department and year):
             return jsonify({"success": False, "message": "Missing fields"}), 400
 
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Save to Excel
-        df = pd.read_excel(REG_FILE)
-        df.loc[len(df)] = [timestamp, name, regno, college, department, year]
-        df.to_excel(REG_FILE, index=False)
-
-        # Save to SQLite
+        # Save to DB only (Excel storage removed)
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
@@ -88,7 +63,7 @@ def get_questions():
         return jsonify(safe)
     return jsonify([])
 
-@app.route("/submit-quiz", methods=["POST"])
+@app.route("/submit-quiz", methods=["POST"]) 
 def submit_quiz():
     payload = request.get_json()
     if not payload:
@@ -118,7 +93,6 @@ def submit_quiz():
 
     points = correct * 2
     avg_time = (total_time / time_counts) if time_counts else 0
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Save to SQLite
     conn = get_db_connection()
@@ -136,7 +110,7 @@ def submit_quiz():
     conn.commit()
     conn.close()
 
-    # After quiz submission, redirect to leaderboard page
+
     return jsonify({"success": True, "redirect": "/leaderboard"})
 
 @app.route("/leaderboard")
@@ -162,13 +136,47 @@ def leaderboard():
     ]
     print(leaderboard_data)
     conn.close()
-    return render_template("leaderboard.html", leaderboard=leaderboard_data)
+    return render_template("leaderboard.html", board=leaderboard_data)
 
-@app.route("/download/registrations")
-def download_regs():
-    if REG_FILE.exists():
-        return send_file(REG_FILE, as_attachment=True)
-    return "No file", 404
+# New: JSON API for leaderboard, used by the SPA
+@app.route("/api/leaderboard")
+def leaderboard_api():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT name, regno, correct, points, avg_time
+            FROM participants
+            ORDER BY points DESC, avg_time ASC
+            LIMIT 20
+            """
+        )
+        rows = cur.fetchall()
+        data = []
+        for row in rows:
+            avg = None
+            if row[4] is not None:
+                try:
+                    avg = round(float(row[4]), 2)
+                except Exception:
+                    avg = None
+            data.append({
+                "name": row[0],
+                "regno": row[1],
+                "correct": row[2],
+                "points": row[3],
+                "avg_time": avg,
+            })
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -198,15 +198,16 @@ async function showLeaderboard(){
   tableDiv.innerHTML = "Loading...";
   let yourRank = "";
   try {
-    const res = await fetch("/leaderboard");
+    const res = await fetch("/api/leaderboard");
     const data = await res.json();
     if(Array.isArray(data)){
       let html = `<table class='lb-table'><thead><tr><th>Rank</th><th>Name</th><th>Reg No</th><th>Correct</th><th>Points</th><th>Avg Time (s)</th></tr></thead><tbody>`;
       let found = false;
       data.forEach((row, idx) => {
-        html += `<tr${row.regno===userRegno ? " style='background:#e0e7ff'" : ""}><td>${idx+1}</td><td>${row.name}</td><td>${row.regno}</td><td>${row.correct_answers}</td><td>${row.points}</td><td>${row.avg_time_sec}</td></tr>`;
+        const avgTime = row.avg_time ?? "";
+        html += `<tr${row.regno===userRegno ? " style='background:#e0e7ff'" : ""}><td>${idx+1}</td><td>${row.name}</td><td>${row.regno}</td><td>${row.correct}</td><td>${row.points}</td><td>${avgTime}</td></tr>`;
         if(row.regno===userRegno){
-          yourRank = `Your Rank: ${idx+1} | Points: ${row.points} | Avg Time: ${row.avg_time_sec}s`;
+          yourRank = `Your Rank: ${idx+1} | Points: ${row.points} | Avg Time: ${avgTime}s`;
           found = true;
         }
       });
