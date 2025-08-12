@@ -62,7 +62,7 @@ def register():
             "avg_time": 0.0,
         })
 
-        return jsonify({"success": True, "message": "Registration successful"})
+        return jsonify({"success": True, "message": "Registration successful", "name": p.name, "regno": p.regno})
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500

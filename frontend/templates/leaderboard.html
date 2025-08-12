@@ -15,6 +15,17 @@
         flex-direction: column;
         align-items: center;
     }
+    /* fixed user badge */
+    .user-badge{position:fixed; top:12px; left:12px; z-index:70; display:flex; align-items:center; gap:10px; backdrop-filter: blur(8px); background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(237,245,255,0.92)); border:1px solid rgba(123,44,255,0.18); border-radius: 14px; padding: 8px 12px 8px 8px; box-shadow: 0 14px 30px rgba(3,2,20,0.22); color:#1d1d1f; min-width: 220px}
+    .user-badge .ub-avatar{width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, #7b2cff, #3ac3ff); color:#fff; font-weight:700; font-size:14px; box-shadow: 0 6px 16px rgba(123,44,255,0.25)}
+    .user-badge .ub-meta{display:flex; flex-direction:column}
+    .user-badge .user-line{font-weight:600; font-size: 13px; line-height: 1.2}
+    .user-badge .user-line small{font-weight:600}
+    .user-badge .user-line.small{font-weight:500; font-size: 12px; opacity: .85}
+    .user-badge .ub-clear{margin-left:auto; appearance:none; border:none; background:transparent; color:#5b5b66; font-size:16px; line-height:1; padding:4px; cursor:pointer; border-radius:8px}
+    .user-badge .ub-clear:hover{background:rgba(0,0,0,0.06)}
+    .hidden{display:none}
+
     h1 {
         text-align: center;
         font-size: 2.5rem;
@@ -63,6 +74,16 @@
 </head>
 <body>
 
+<!-- user badge -->
+<div id="user-badge" class="user-badge hidden" aria-live="polite">
+  <div class="ub-avatar" id="ub-avatar">U</div>
+  <div class="ub-meta">
+    <div class="user-line"><small>Name =</small> <span id="ub-name">—</span></div>
+    <div class="user-line small"><small>Reg ID =</small> <span id="ub-regno">—</span></div>
+  </div>
+  <button id="ub-clear" class="ub-clear" title="Clear user">✕</button>
+</div>
+
 <h1>🏆 Leaderboard 🏆</h1>
 
 <table>
@@ -91,6 +112,35 @@
 </table>
 
 <a href="/" class="btn-close">Close</a>
+
+<script>
+(function(){
+  const badge = document.getElementById('user-badge');
+  const n = document.getElementById('ub-name');
+  const r = document.getElementById('ub-regno');
+  const a = document.getElementById('ub-avatar');
+  const c = document.getElementById('ub-clear');
+  function show(name, regno){
+    if(name && regno){
+      n.textContent = name; r.textContent = regno; a.textContent = (name[0]||'U').toUpperCase();
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+  try{
+    const s = localStorage.getItem('quiz_user');
+    if(s){
+      const u = JSON.parse(s);
+      show(u?.name, u?.regno);
+    }
+  }catch{}
+  c?.addEventListener('click', () => {
+    try{ localStorage.removeItem('quiz_user'); }catch{}
+    show('', '');
+  });
+})();
+</script>
 
 </body>
 </html>

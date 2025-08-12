@@ -11,6 +11,26 @@ const registerBtn = document.getElementById("register-btn");
 const startBtn = document.getElementById("start-btn");
 const regStatus = document.getElementById("reg-status");
 
+// user badge elements
+const userBadge = document.getElementById("user-badge");
+const ubName = document.getElementById("ub-name");
+const ubRegno = document.getElementById("ub-regno");
+const ubAvatar = document.getElementById("ub-avatar");
+const ubClear = document.getElementById("ub-clear");
+
+// Clear stored user on hard refresh (F5/Ctrl+R)
+try{
+  let isReload = false;
+  const navEntries = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+  if(navEntries[0] && navEntries[0].type === "reload") isReload = true;
+  // legacy fallback
+  if(!isReload && performance && performance.navigation && performance.navigation.type === 1) isReload = true;
+  if(isReload){
+    localStorage.removeItem("quiz_user");
+  }
+}catch{}
+
+// user state
 let QUESTIONS = [];
 let currentIndex = 0;
 let timerInt = null;
@@ -20,11 +40,47 @@ let answersGiven = [];
 let questionStartTime = null;
 let userName = "", userRegno = "";
 
+function showUserBadge(name, regno){
+  if(name && regno){
+    ubName.textContent = name;
+    ubRegno.textContent = regno;
+    ubAvatar.textContent = (name?.[0] || 'U').toUpperCase();
+    userBadge.classList.remove("hidden");
+  } else {
+    userBadge.classList.add("hidden");
+  }
+}
+
+function clearUser(){
+  try { localStorage.removeItem("quiz_user"); } catch {}
+  userName = ""; userRegno = "";
+  showUserBadge("", "");
+}
+
+ubClear?.addEventListener('click', clearUser);
+
+function restoreUserFromStorage(){
+  const s = localStorage.getItem("quiz_user");
+  if(s){
+    try{
+      const obj = JSON.parse(s);
+      userName = obj.name || "";
+      userRegno = obj.regno || "";
+      showUserBadge(userName, userRegno);
+    }catch{ /* ignore */ }
+  } else {
+    showUserBadge("", "");
+  }
+}
+
 // get questions from server
 async function fetchQuestions(){
   const res = await fetch("/questions");
   QUESTIONS = await res.json();
 }
+
+// restore on initial script load
+restoreUserFromStorage();
 
 // video end -> show welcome after 3s
 introVideo.addEventListener("ended", async () => {
@@ -70,10 +126,16 @@ registerBtn.addEventListener("click", async () => {
     });
     const j = await res.json();
     if(j.success){
+      // prefer server-echoed values
+      userName = j.name || name; 
+      userRegno = j.regno || regno;
+      // persist for navigation / reloads
+      try { localStorage.setItem("quiz_user", JSON.stringify({name: userName, regno: userRegno})); } catch {}
+      showUserBadge(userName, userRegno);
+
       regStatus.textContent = "Registered successfully.";
       startBtn.classList.remove("hidden");
       startBtn.classList.add("slide-in");
-      userName = name; userRegno = regno;
     } else {
       regStatus.textContent = j.message || "Registration failed.";
     }
@@ -89,6 +151,7 @@ startBtn.addEventListener("click", () => {
   registration.classList.add("hidden");
   quiz.classList.remove("hidden");
   currentIndex = 0; answersGiven = [];
+  showUserBadge(userName, userRegno);
   showQuestion();
   startTimer();
 });
