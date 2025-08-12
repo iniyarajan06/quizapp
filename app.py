@@ -11,7 +11,7 @@ from models import db, Participant, Result, Answer
 
 load_dotenv()
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+app = Flask(__name__, static_folder="frontend/static", template_folder="frontend/templates")
 CORS(app)
 
 QUESTIONS_FILE = Path(__file__).parent / "questions.json"
